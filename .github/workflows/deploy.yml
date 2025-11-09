@@ -1,1 +1,28 @@
+name: Deploy Fluid Token to Polygon
 
+on:
+  workflow_dispatch:  # Manual trigger from GitHub Actions
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Deploy Fluid Token
+        env:
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
+          DEPLOYER_KEY: ${{ secrets.DEPLOYER_KEY }}
+        run: npx hardhat run scripts/deploy.js --network polygon
