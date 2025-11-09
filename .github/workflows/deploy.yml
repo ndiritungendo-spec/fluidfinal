@@ -8,6 +8,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # RPC and private key
+      ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+      
+      # Constructor arguments
+      FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
+      RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
+      INITIAL_SIGNERS: '["${{ secrets.SIGNER1 }}","${{ secrets.SIGNER2 }}","${{ secrets.SIGNER3 }}"]'
+      REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
 
     steps:
       # 1️⃣ Checkout repository
@@ -26,20 +37,12 @@ jobs:
 
       # 4️⃣ Compile contracts
       - name: Compile contracts
-        run: npx hardhat compile
+        run: npx hardhat compile --force
 
       # 5️⃣ Deploy FluidToken
       - name: Deploy FluidToken
         id: deploy
-        env:
-          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          if [ -z "$ALCHEMY_URL" ] || [ -z "$PRIVATE_KEY" ]; then
-            echo "Error: ALCHEMY_URL or PRIVATE_KEY not set. Please set GitHub secrets."
-            exit 1
-          fi
-
           echo "Deploying FluidToken..."
           DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network polygon)
           echo "$DEPLOY_OUTPUT"
@@ -48,7 +51,7 @@ jobs:
           CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "FluidToken deployed to:" | awk '{print $5}')
           echo "Deployed Contract Address: $CONTRACT_ADDRESS"
 
-          # Save contract address for later steps
+          # Save to GitHub environment
           echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" >> $GITHUB_ENV
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
 
@@ -56,17 +59,16 @@ jobs:
       - name: Verify on Polygonscan
         env:
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
-          CONTRACT_ADDRESS: ${{ env.CONTRACT_ADDRESS }}
+          CONTRACT_ADDRESS: ${{ steps.deploy.outputs.contract_address }}
         run: |
           if [ -z "$CONTRACT_ADDRESS" ]; then
-            echo "Error: Contract address not found. Skipping verification."
+            echo "No contract address found. Skipping verification."
             exit 1
           fi
-          echo "Verifying contract on Polygonscan..."
 
-          # Replace the constructor args with your token's actual constructor values
-          TOKEN_NAME="FluidToken"
-          TOKEN_SYMBOL="FLUID"
-          INITIAL_SUPPLY="10000000000000000000000000" # 10 million tokens with 18 decimals
-
-          npx hardhat verify --network polygon $CONTRACT_ADDRESS "$TOKEN_NAME" "$TOKEN_SYMBOL" "$INITIAL_SUPPLY"
+          echo "Verifying FluidToken on Polygonscan..."
+          
+          # Parse signers array from env
+          SIGNERS=$(node -e "console.log(JSON.parse(process.env.INITIAL_SIGNERS).join(' '))")
+          
+          npx hardhat verify --network polygon $CONTRACT_ADDRESS ${{ secrets.FOUNDATION_WALLET }} ${{ secrets.RELAYER_WALLET }} $SIGNERS ${{ secrets.REQUIRED_APPROVALS }}
