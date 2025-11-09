@@ -6,77 +6,87 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ Install dependencies
-      - name: Install dependencies
+      - name: Install dependencies (CI clean)
         run: npm ci
 
-      # 4️⃣ Compile contracts and generate artifacts
-      - name: Compile contracts
+      - name: Clean old artifacts & compile contracts
         run: |
           rm -rf artifacts cache node_modules/.cache
           npx hardhat compile --force
 
-      # 5️⃣ Debug: list artifacts
-      - name: List artifacts
-        run: ls -R artifacts
+      - name: List artifacts (debug)
+        run: ls -R artifacts || true
 
-      # 6️⃣ Check FluidToken artifact
-      - name: Verify artifact exists
+      - name: Verify FluidToken artifact exists
         run: |
-          ARTIFACT_PATH="artifacts/contracts/FluidToken.sol/FluidToken.json"
-          if [ ! -f "$ARTIFACT_PATH" ]; then
-            echo "❌ Artifact not found!"
+          ARTIFACT="artifacts/contracts/FluidToken.sol/FluidToken.json"
+          if [ ! -f "$ARTIFACT" ]; then
+            echo "❌ Artifact not found at $ARTIFACT"
+            echo "Full artifacts tree:"
+            ls -la artifacts || true
             exit 1
           else
-            echo "✅ Artifact exists"
+            echo "✅ Artifact exists at $ARTIFACT"
           fi
 
-      # 7️⃣ Deploy FluidToken
+      - name: Upload artifacts folder for debugging
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardhat-artifacts
+          path: artifacts
+
       - name: Deploy FluidToken
+        id: deploy
         env:
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
           RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
+          # Provide INITIAL_SIGNERS as a JSON string in secrets (no empty entries)
           INITIAL_SIGNERS: '["${{ secrets.SIGNER1 }}","${{ secrets.SIGNER2 }}","${{ secrets.SIGNER3 }}"]'
           REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
         run: |
           echo "🚀 Deploying FluidToken..."
-          DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network polygon)
-          echo "$DEPLOY_OUTPUT"
+          npx hardhat run scripts/deploy.js --network polygon 2>&1 | tee deploy_output.txt
+          cat deploy_output.txt
 
-          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "FluidToken deployed to:" | awk '{print $5}')
+          CONTRACT_ADDRESS=$(grep -m1 "FluidToken deployed to:" deploy_output.txt | awk '{print $4}')
+          if [ -z "$CONTRACT_ADDRESS" ]; then
+            echo "❌ Could not extract contract address from output"
+            exit 1
+          fi
           echo "Deployed Contract Address: $CONTRACT_ADDRESS"
           echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" >> $GITHUB_ENV
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
 
-          TOTAL_SUPPLY=$(echo "$DEPLOY_OUTPUT" | grep "Total supply:" | awk '{print $3}')
-          echo "💧 Total Supply: $TOTAL_SUPPLY FLD"
-
-      # 8️⃣ Verify on Polygonscan
       - name: Verify on Polygonscan
+        if: success()
         env:
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
           CONTRACT_ADDRESS: ${{ env.CONTRACT_ADDRESS }}
         run: |
           if [ -z "$CONTRACT_ADDRESS" ]; then
-            echo "❌ Contract address not found. Skipping verification."
-            exit 1
+            echo "No contract address - skipping verification"
+            exit 0
           fi
           echo "🔍 Verifying contract on Polygonscan..."
-          npx hardhat verify --network polygon $CONTRACT_ADDRESS $(node -p "ethers.utils.parseUnits('1000000', 18)")
+          # Replace constructor args as necessary; here we use the same env values passed to deploy.js
+          SIGNERS=$(node -e "console.log(JSON.parse(process.env.INITIAL_SIGNERS).join(' '))")
+          npx hardhat verify --network polygon $CONTRACT_ADDRESS ${{ secrets.FOUNDATION_WALLET }} ${{ secrets.RELAYER_WALLET }} $SIGNERS ${{ secrets.REQUIRED_APPROVALS }}
