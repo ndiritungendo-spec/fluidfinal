@@ -1,4 +1,4 @@
-name: Deploy and Verify Fluid Token
+name: Deploy and Verify FluidToken
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repository
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -28,13 +28,12 @@ jobs:
       - name: Compile contracts
         run: npx hardhat compile
 
-      # 5️⃣ Deploy to Polygon
-      - name: Deploy to Polygon
+      # 5️⃣ Deploy FluidToken
+      - name: Deploy FluidToken
         id: deploy
         env:
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
           if [ -z "$ALCHEMY_URL" ] || [ -z "$PRIVATE_KEY" ]; then
             echo "Error: ALCHEMY_URL or PRIVATE_KEY not set. Please set GitHub secrets."
@@ -45,10 +44,13 @@ jobs:
           DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network polygon)
           echo "$DEPLOY_OUTPUT"
 
-          # Extract deployed contract address from the deploy.js console output
+          # Extract deployed contract address
           CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "FluidToken deployed to:" | awk '{print $5}')
           echo "Deployed Contract Address: $CONTRACT_ADDRESS"
+
+          # Save contract address for later steps
           echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+          echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
 
       # 6️⃣ Verify contract on Polygonscan
       - name: Verify on Polygonscan
@@ -61,4 +63,10 @@ jobs:
             exit 1
           fi
           echo "Verifying contract on Polygonscan..."
-          npx hardhat verify --network polygon $CONTRACT_ADDRESS $(node -p "ethers.utils.parseUnits('1000000', 18)")
+
+          # Replace the constructor args with your token's actual constructor values
+          TOKEN_NAME="FluidToken"
+          TOKEN_SYMBOL="FLUID"
+          INITIAL_SUPPLY="10000000000000000000000000" # 10 million tokens with 18 decimals
+
+          npx hardhat verify --network polygon $CONTRACT_ADDRESS "$TOKEN_NAME" "$TOKEN_SYMBOL" "$INITIAL_SUPPLY"
