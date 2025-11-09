@@ -2,23 +2,18 @@ require("dotenv").config();
 const { ethers } = require("hardhat");
 
 async function main() {
-  // Load environment variables
   const FOUNDATION_WALLET = process.env.FOUNDATION_WALLET;
   const RELAYER_WALLET = process.env.RELAYER_WALLET;
   const INITIAL_SIGNERS = JSON.parse(process.env.INITIAL_SIGNERS || "[]");
   const REQUIRED_APPROVALS = parseInt(process.env.REQUIRED_APPROVALS || "0");
 
-  // Check required variables
   if (!FOUNDATION_WALLET || !RELAYER_WALLET || INITIAL_SIGNERS.length === 0 || REQUIRED_APPROVALS <= 0) {
     throw new Error("Missing FOUNDATION_WALLET, RELAYER_WALLET, INITIAL_SIGNERS, or REQUIRED_APPROVALS in environment");
   }
 
   console.log("🚀 Starting Fluid Token (FLD) deployment...");
 
-  // Get contract factory
   const FluidToken = await ethers.getContractFactory("FluidToken");
-
-  // Deploy contract
   const token = await FluidToken.deploy(
     FOUNDATION_WALLET,
     RELAYER_WALLET,
@@ -28,12 +23,10 @@ async function main() {
 
   await token.deployed();
 
-  // Log deployed contract address
   console.log("✅ FluidToken deployed to:", token.address);
 
-  // Log total supply
   const totalSupply = await token.totalSupply();
-  console.log("💧 Total supply:", ethers.utils.formatEther(totalSupply), "FLD");
+  console.log("💧 Total supply:", ethers.formatEther(totalSupply), "FLD");
 }
 
 main()
