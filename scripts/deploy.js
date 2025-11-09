@@ -1,27 +1,24 @@
+require("dotenv").config();
 const { ethers } = require("hardhat");
 
 async function main() {
+  // Load environment variables
   const FOUNDATION_WALLET = process.env.FOUNDATION_WALLET;
   const RELAYER_WALLET = process.env.RELAYER_WALLET;
-  const REQUIRED_APPROVALS = parseInt(process.env.REQUIRED_APPROVALS);
+  const INITIAL_SIGNERS = JSON.parse(process.env.INITIAL_SIGNERS || "[]");
+  const REQUIRED_APPROVALS = parseInt(process.env.REQUIRED_APPROVALS || "0");
 
-  let INITIAL_SIGNERS;
-  try {
-    INITIAL_SIGNERS = JSON.parse(process.env.INITIAL_SIGNERS);
-    if (!Array.isArray(INITIAL_SIGNERS) || INITIAL_SIGNERS.length === 0) {
-      throw new Error("INITIAL_SIGNERS must be a non-empty array");
-    }
-  } catch (err) {
-    throw new Error("Failed to parse INITIAL_SIGNERS: " + err.message);
+  // Check required variables
+  if (!FOUNDATION_WALLET || !RELAYER_WALLET || INITIAL_SIGNERS.length === 0 || REQUIRED_APPROVALS <= 0) {
+    throw new Error("Missing FOUNDATION_WALLET, RELAYER_WALLET, INITIAL_SIGNERS, or REQUIRED_APPROVALS in environment");
   }
 
-  console.log("Deploying FluidToken...");
-  console.log("Foundation:", FOUNDATION_WALLET);
-  console.log("Relayer:", RELAYER_WALLET);
-  console.log("Signers:", INITIAL_SIGNERS);
-  console.log("Required approvals:", REQUIRED_APPROVALS);
+  console.log("🚀 Starting Fluid Token (FLD) deployment...");
 
+  // Get contract factory
   const FluidToken = await ethers.getContractFactory("FluidToken");
+
+  // Deploy contract
   const token = await FluidToken.deploy(
     FOUNDATION_WALLET,
     RELAYER_WALLET,
@@ -30,10 +27,18 @@ async function main() {
   );
 
   await token.deployed();
-  console.log("FluidToken deployed to:", token.address);
+
+  // Log deployed contract address
+  console.log("✅ FluidToken deployed to:", token.address);
+
+  // Log total supply
+  const totalSupply = await token.totalSupply();
+  console.log("💧 Total supply:", ethers.utils.formatEther(totalSupply), "FLD");
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("❌ Deployment failed:", error);
+    process.exit(1);
+  });
