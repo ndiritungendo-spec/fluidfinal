@@ -4,17 +4,17 @@ require("dotenv").config();
 module.exports = {
   solidity: "0.8.28",
   paths: {
-    sources: "./contracts",   // your .sol files folder
+    sources: "./contracts",
     artifacts: "./artifacts",
     cache: "./cache"
   },
   networks: {
     polygon: {
-      url: process.env.ALCHEMY_URL,
-      accounts: [process.env.PRIVATE_KEY].filter(Boolean)
+      url: process.env.ALCHEMY_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     }
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY
+    apiKey: process.env.POLYGONSCAN_API_KEY || ""
   }
 };
