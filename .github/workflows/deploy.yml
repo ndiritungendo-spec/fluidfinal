@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      # RPC and private key
+      # RPC & private key
       ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
       PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
@@ -21,25 +21,22 @@ jobs:
       REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
 
     steps:
-      # 1️⃣ Checkout repository
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # 4️⃣ Compile contracts
-      - name: Compile contracts
-        run: npx hardhat compile --force
+      - name: Clean and Compile contracts
+        run: |
+          rm -rf artifacts cache
+          npx hardhat compile --force
 
-      # 5️⃣ Deploy FluidToken
       - name: Deploy FluidToken
         id: deploy
         run: |
@@ -50,12 +47,9 @@ jobs:
           # Extract deployed contract address
           CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "FluidToken deployed to:" | awk '{print $5}')
           echo "Deployed Contract Address: $CONTRACT_ADDRESS"
-
-          # Save to GitHub environment
           echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" >> $GITHUB_ENV
           echo "contract_address=$CONTRACT_ADDRESS" >> $GITHUB_OUTPUT
 
-      # 6️⃣ Verify contract on Polygonscan
       - name: Verify on Polygonscan
         env:
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
@@ -65,10 +59,5 @@ jobs:
             echo "No contract address found. Skipping verification."
             exit 1
           fi
-
-          echo "Verifying FluidToken on Polygonscan..."
-          
-          # Parse signers array from env
           SIGNERS=$(node -e "console.log(JSON.parse(process.env.INITIAL_SIGNERS).join(' '))")
-          
           npx hardhat verify --network polygon $CONTRACT_ADDRESS ${{ secrets.FOUNDATION_WALLET }} ${{ secrets.RELAYER_WALLET }} $SIGNERS ${{ secrets.REQUIRED_APPROVALS }}
