@@ -1,4 +1,4 @@
-name: Deploy Fluid Token
+name: Deploy and Verify Fluid Token
 
 on:
   workflow_dispatch:
@@ -10,27 +10,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install deps
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
         run: npm install
 
+      # 4️⃣ Compile contracts
       - name: Compile contracts
         run: npx hardhat compile
 
+      # 5️⃣ Deploy to Polygon
       - name: Deploy to Polygon
+        id: deploy
         env:
           ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
-          RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
-          SIGNER1: ${{ secrets.SIGNER1 }}
-          SIGNER2: ${{ secrets.SIGNER2 }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
-        run: npx hardhat run scripts/deploy.js --network polygon
+        run: |
+          if [ -z "$ALCHEMY_URL" ] || [ -z "$PRIVATE_KEY" ]; then
+            echo "Error: ALCHEMY_URL or PRIVATE_KEY not set. Please set GitHub secrets."
+            exit 1
+          fi
+
+          echo "Deploying FluidToken..."
+          DEPLOY_OUTPUT=$(npx hardhat run scripts/deploy.js --network polygon)
+          echo "$DEPLOY_OUTPUT"
+
+          # Extract deployed contract address from the deploy.js console output
+          CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "FluidToken deployed to:" | awk '{print $5}')
+          echo "Deployed Contract Address: $CONTRACT_ADDRESS"
+          echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" >> $GITHUB_ENV
+
+      # 6️⃣ Verify contract on Polygonscan
+      - name: Verify on Polygonscan
+        env:
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          CONTRACT_ADDRESS: ${{ env.CONTRACT_ADDRESS }}
+        run: |
+          if [ -z "$CONTRACT_ADDRESS" ]; then
+            echo "Error: Contract address not found. Skipping verification."
+            exit 1
+          fi
+          echo "Verifying contract on Polygonscan..."
+          npx hardhat verify --network polygon $CONTRACT_ADDRESS $(node -p "ethers.utils.parseUnits('1000000', 18)")
