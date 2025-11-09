@@ -1,43 +1,50 @@
-const hre = require("hardhat");
-const fs = require("fs");
-require("dotenv").config();
+const { ethers } = require("hardhat");
 
 async function main() {
-  console.log("🚀 Starting Fluid Token (FLD) deployment...");
+  // Read constructor arguments from environment variables
+  const FOUNDATION_WALLET = process.env.FOUNDATION_WALLET;
+  const RELAYER_WALLET = process.env.RELAYER_WALLET;
+  const REQUIRED_APPROVALS = parseInt(process.env.REQUIRED_APPROVALS);
 
-  const foundation = process.env.FOUNDATION_WALLET;
-  const relayer = process.env.RELAYER_WALLET;
-  const signer1 = process.env.SIGNER1;
-  const signer2 = process.env.SIGNER2;
-
-  if (!foundation || !relayer || !signer1 || !signer2) {
-    throw new Error("❌ Missing environment variables in .env or GitHub Secrets");
+  if (!FOUNDATION_WALLET || !RELAYER_WALLET || !REQUIRED_APPROVALS) {
+    throw new Error("Missing FOUNDATION_WALLET, RELAYER_WALLET, or REQUIRED_APPROVALS in environment");
   }
 
-  const FluidToken = await hre.ethers.getContractFactory("FluidToken");
+  // Parse initial signers JSON array
+  let INITIAL_SIGNERS;
+  try {
+    INITIAL_SIGNERS = JSON.parse(process.env.INITIAL_SIGNERS);
+    if (!Array.isArray(INITIAL_SIGNERS) || INITIAL_SIGNERS.length === 0) {
+      throw new Error("INITIAL_SIGNERS must be a non-empty array");
+    }
+  } catch (err) {
+    throw new Error("Failed to parse INITIAL_SIGNERS environment variable: " + err.message);
+  }
 
-  console.log("📦 Deploying contract...");
-  const fluid = await FluidToken.deploy(
-    foundation,
-    relayer,
-    [signer1, signer2],
-    2 // required approvals
+  console.log("Deploying FluidToken with:");
+  console.log("Foundation Wallet:", FOUNDATION_WALLET);
+  console.log("Relayer Wallet:", RELAYER_WALLET);
+  console.log("Initial Signers:", INITIAL_SIGNERS);
+  console.log("Required Approvals:", REQUIRED_APPROVALS);
+
+  // Get the contract factory
+  const FluidToken = await ethers.getContractFactory("FluidToken");
+
+  // Deploy the contract with constructor arguments
+  const token = await FluidToken.deploy(
+    FOUNDATION_WALLET,
+    RELAYER_WALLET,
+    INITIAL_SIGNERS,
+    REQUIRED_APPROVALS
   );
 
-  await fluid.waitForDeployment();
-  const address = await fluid.getAddress();
+  // Wait for deployment to finish
+  await token.deployed();
 
-  console.log(`✅ Fluid Token deployed to: ${address}`);
-
-  fs.writeFileSync(
-    "deployment-log.txt",
-    `Fluid Token deployed to: ${address}\nNetwork: ${hre.network.name}\nTimestamp: ${new Date().toISOString()}\n`
-  );
-
-  console.log("📝 Deployment info saved to deployment-log.txt");
+  console.log("FluidToken deployed to:", token.address);
 }
 
 main().catch((error) => {
-  console.error("❌ Deployment failed:", error);
+  console.error(error);
   process.exitCode = 1;
 });
