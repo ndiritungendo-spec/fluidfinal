@@ -28,16 +28,15 @@ contract FluidToken is ERC20, Ownable {
     address public foundationWallet;
     address public relayerWallet;
 
-    address public marketingWallet = 0xd40c17e2076a6cab4fcb4c7ad50693c0bd87c96f;
-    address public teamWallet = 0x22a978289a5864be1890dac00154a7d343273342;
-    address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
+    address public marketingWallet = 0xD40C17e2076A6CaB4fCB4C7ad50693C0Bd87C96F;
+    address public teamWallet = 0x22A978289A5864Be1890DAC00154A7D343273342;
+    address public devWallet = 0x4cA465F7B25B630B62B4C36B64DFF963F81E27C0;
 
     uint256 public fldPriceUSDT6 = 1e6;
+    uint256 public fldSold;
 
     mapping(address => AggregatorV3Interface) public priceFeeds;
     AggregatorV3Interface public nativePriceFeed;
-
-    uint256 public fldSold;
 
     struct AirdropInfo {
         uint256 totalAllocated;
@@ -50,7 +49,7 @@ contract FluidToken is ERC20, Ownable {
     uint256 public distributedAirdrops;
     uint8 public constant AIRDROP_YEARS = 5;
 
-    uint32 private _finderRewardPPM = 1000; 
+    uint32 private _finderRewardPPM = 1000;
 
     address[] public signers;
     mapping(address => bool) public isSigner;
@@ -158,25 +157,25 @@ contract FluidToken is ERC20, Ownable {
         if(gasFee > 0) IERC20(payToken).safeTransferFrom(msg.sender, relayerWallet, gasFee);
         IERC20(payToken).safeTransferFrom(msg.sender, foundationWallet, saleAmount);
 
-        AggregatorV3Interface feed = priceFeeds[payToken];  
-        (, int256 price,,,) = feed.latestRoundData();  
-        require(price > 0, "invalid feed");  
-        uint8 aggDecimals = feed.decimals();  
-        uint8 tokenDecimals;  
-        try IERC20Metadata(payToken).decimals() returns (uint8 d) { tokenDecimals = d; } catch { tokenDecimals = 18; }  
+        AggregatorV3Interface feed = priceFeeds[payToken];
+        (, int256 price,,,) = feed.latestRoundData();
+        require(price > 0, "invalid feed");
+        uint8 aggDecimals = feed.decimals();
+        uint8 tokenDecimals;
+        try IERC20Metadata(payToken).decimals() returns (uint8 d) { tokenDecimals = d; } catch { tokenDecimals = 18; }
 
-        uint256 usd18 = (saleAmount * uint256(price) * 1e18) / ((10 ** tokenDecimals) * (10 ** aggDecimals));  
-        uint256 fldAmount = (usd18 * 1e6) / fldPriceUSDT6;  
-        require(balanceOf(address(this)) >= fldAmount, "contract lacks FLD");  
-        require(fldSold + fldAmount <= SALE_SUPPLY, "sale supply exceeded");  
+        uint256 usd18 = (saleAmount * uint256(price) * 1e18) / ((10 ** tokenDecimals) * (10 ** aggDecimals));
+        uint256 fldAmount = (usd18 * 1e6) / fldPriceUSDT6;
+        require(balanceOf(address(this)) >= fldAmount, "contract lacks FLD");
+        require(fldSold + fldAmount <= SALE_SUPPLY, "sale supply exceeded");
 
-        _transfer(address(this), msg.sender, fldAmount);  
-        fldSold += fldAmount;  
+        _transfer(address(this), msg.sender, fldAmount);
+        fldSold += fldAmount;
 
-        uint256 airdropAlloc = (fldAmount * AIRDROP_SUPPLY) / SALE_SUPPLY;  
-        if (airdropAlloc > 0) _allocateAirdrop(msg.sender, airdropAlloc);  
+        uint256 airdropAlloc = (fldAmount * AIRDROP_SUPPLY) / SALE_SUPPLY;
+        if (airdropAlloc > 0) _allocateAirdrop(msg.sender, airdropAlloc);
 
-        emit SaleExecuted(msg.sender, payToken, payAmount, fldAmount);  
+        emit SaleExecuted(msg.sender, payToken, payAmount, fldAmount);
     }
 
     function buyWithNativeAndGas(uint256 gasFee) external payable {
