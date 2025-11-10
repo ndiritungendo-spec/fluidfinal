@@ -18,7 +18,6 @@ interface AggregatorV3Interface {
 contract FluidToken is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
-    // ----- Supply -----
     uint256 public constant TOTAL_SUPPLY = 10_000_000 * 1e18;
     uint256 public constant SALE_SUPPLY = (TOTAL_SUPPLY * 40) / 100;
     uint256 public constant AIRDROP_SUPPLY = (TOTAL_SUPPLY * 30) / 100;
@@ -26,26 +25,20 @@ contract FluidToken is ERC20, Ownable {
     uint256 public constant TEAM_SUPPLY = (TOTAL_SUPPLY * 10) / 100;
     uint256 public constant DEV_SUPPLY = (TOTAL_SUPPLY * 10) / 100;
 
-    // ----- Wallets -----
     address public foundationWallet;
     address public relayerWallet;
 
-    // Preset wallets
     address public marketingWallet = 0xd40c17e2076a6cab4fcb4c7ad50693c0bd87c96f;
-address public teamWallet = 0x22a978289a5864be1890dac00154a7d343273342;
-address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
+    address public teamWallet = 0x22a978289a5864be1890dac00154a7d343273342;
+    address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
 
-    // ----- Price -----
     uint256 public fldPriceUSDT6 = 1e6;
 
-    // ----- Chainlink feeds -----
     mapping(address => AggregatorV3Interface) public priceFeeds;
     AggregatorV3Interface public nativePriceFeed;
 
-    // ----- Sale tracking -----
     uint256 public fldSold;
 
-    // ----- Airdrop -----
     struct AirdropInfo {
         uint256 totalAllocated;
         uint8 claimedYears;
@@ -57,10 +50,8 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
     uint256 public distributedAirdrops;
     uint8 public constant AIRDROP_YEARS = 5;
 
-    // ----- Finder reward -----
-    uint32 private _finderRewardPPM = 1000; // 0.1%
+    uint32 private _finderRewardPPM = 1000; 
 
-    // ----- Multisig -----
     address[] public signers;
     mapping(address => bool) public isSigner;
     uint256 public requiredApprovals;
@@ -76,7 +67,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
     mapping(uint256 => mapping(address => bool)) public proposalApprovedBy;
     uint256 public proposalCount;
 
-    // ----- Events -----
     event PriceUpdated(uint256 newPriceUSDT6);
     event PriceFeedSet(address token, address feed);
     event NativeFeedSet(address feed);
@@ -85,7 +75,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
     event SaleExecuted(address indexed buyer, address payToken, uint256 payAmount, uint256 fldAmount);
     event AirdropAllocated(address indexed user, uint256 amount);
     event AirdropClaimed(address indexed user, uint256 amount, uint8 year);
-    event AirdropExpired(address indexed user, uint8 year, uint256 slice, address indexed finder, uint256 reward);
     event FinderRewardUpdated(uint32 ppm);
     event ProposalCreated(uint256 id, address token, address to, uint256 amount);
     event ProposalApproved(uint256 id, address approver);
@@ -106,7 +95,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
 
         _mint(address(this), TOTAL_SUPPLY);
 
-        // distribute preset allocations
         _transfer(address(this), marketingWallet, MARKETING_LIQUIDITY_SUPPLY);
         _transfer(address(this), teamWallet, TEAM_SUPPLY);
         _transfer(address(this), devWallet, DEV_SUPPLY);
@@ -121,9 +109,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
         requiredApprovals = _requiredApprovals;
     }
 
-    // =========================
-    // ===== Admin / Config ====
-    // =========================
     function setFldPriceUSDT6(uint256 priceUSDT6) external onlyOwner {
         require(priceUSDT6 > 0, "price>0");
         fldPriceUSDT6 = priceUSDT6;
@@ -164,9 +149,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
         return _finderRewardPPM;
     }
 
-    // =========================
-    // ===== BUYING ==========
-    // =========================
     function buyWithERC20AndGas(address payToken, uint256 payAmount, uint256 gasFee) external {
         require(payAmount > gasFee, "payAmount must > gasFee");
         require(relayerWallet != address(0) && foundationWallet != address(0), "wallets not set");
@@ -222,9 +204,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
         emit SaleExecuted(msg.sender, address(0), msg.value, fldAmount);
     }
 
-    // =========================
-    // ======= AIRDROPS ========
-    // =========================
     function _allocateAirdrop(address user, uint256 amount) internal {
         require(user != address(0) && amount > 0, "invalid");
         require(distributedAirdrops + amount <= AIRDROP_SUPPLY, "exceeds pool");
@@ -254,9 +233,6 @@ address public devWallet = 0x4ca465f7b25b630b62b4c36b64dff963f81e27c0;
         emit AirdropClaimed(msg.sender, perYear, currentYear);
     }
 
-    // =========================
-    // ===== Multisig ==========
-    // =========================
     modifier onlySigner() { require(isSigner[msg.sender], "not signer"); _; }
 
     function createProposal(address token, address to, uint256 amount) external onlySigner returns(uint256){
