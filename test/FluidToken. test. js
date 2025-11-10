@@ -1,0 +1,17 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("FluidToken Deployment", function () {
+  it("Should deploy FluidToken correctly", async function () {
+    const [owner, relayer, signer1, signer2] = await ethers.getSigners();
+    const signers = [signer1.address, signer2.address];
+    const requiredApprovals = 2;
+
+    const Token = await ethers.getContractFactory("FluidToken");
+    const token = await Token.deploy(owner.address, relayer.address, signers, requiredApprovals);
+    await token.deployed();
+
+    expect(await token.balanceOf(token.address)).to.be.a("bigint");
+    expect(await token.fldSold()).to.equal(0);
+  });
+});
