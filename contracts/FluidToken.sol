@@ -28,9 +28,9 @@ contract FluidToken is ERC20, Ownable {
     address public foundationWallet;
     address public relayerWallet;
 
-    address public marketingWallet = 0xD40C17e2076A6CaB4fCB4C7ad50693C0Bd87C96F;
-    address public teamWallet = 0x22A978289A5864Be1890DAC00154A7D343273342;
-    address public devWallet = 0x4cA465F7B25B630B62B4C36B64DFF963F81E27C0;
+    address public marketingWallet = 0xD40C17e2076A6CaB4fCb4C7ad50693c0bd87c96F;
+    address public teamWallet = 0x22A978289a5864be1890DAC00154A7d343273342;
+    address public devWallet = 0x4cA465F7B25b630B62b4C36b64Dff963f81E27C0;
 
     uint256 public fldPriceUSDT6 = 1e6;
     uint256 public fldSold;
