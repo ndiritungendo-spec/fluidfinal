@@ -1,24 +1,18 @@
 {
-  "name": "fluidtoken",
-  "version": "1.0.0",
-  "scripts": {
-    "test": "npx hardhat test",
-    "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run scripts/deploy.js --network polygon"
-  },
-  "devDependencies": {
-<<<<<<< HEAD
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "dotenv": "^16.4.5",
-    "hardhat": "^2.22.5"
-=======
-    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "@openzeppelin/contracts": "^5.4.0",
-    "dotenv": "^16.3.1",
-    "hardhat": "^2.27.0"
-  },
-  "dependencies": {
-    "ethers": "^6.0.0"
->>>>>>> 09e0ec8 (Fix: update dependencies to latest Hardhat versions)
-  }
+    "name": "fluidtoken",
+      "version": "1.0.0",
+        "scripts": {
+            "test": "npx hardhat test",
+                "compile": "npx hardhat compile",
+                    "deploy": "npx hardhat run scripts/deploy.js --network polygon"
+                      },
+                        "devDependencies": {
+                            "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+                                "dotenv": "^16.4.5",
+                                    "hardhat": "^2.22.5"
+                                      },
+                                        "dependencies": {
+                                            "@openzeppelin/contracts": "^4.9.3"
+                                              }
+                                              }
 }
