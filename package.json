@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "compile": "npx hardhat compile",
-    "verify": "npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 'Fluid Token' 'FLUID'"
+    "verify": "npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 'Fluid Token' 'FLD'"
   },
   "devDependencies": {
     "hardhat": "^3.5.0",
