@@ -8,18 +8,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      # Step 1: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      # Step 3: Upgrade Hardhat to 3.x globally to avoid dependency conflict
+      - name: Upgrade Hardhat and Dependencies
+        run: |
+          npm install --save-dev hardhat@^3.5.0 \
+            @nomicfoundation/hardhat-toolbox@^3.0.0 \
+            @nomicfoundation/hardhat-verify@^3.0.6 \
+            ethers@^6.8.0 dotenv@^16.3.1
+
+      # Step 4: Install any remaining dependencies (OpenZeppelin etc.)
+      - name: Install Project Dependencies
         run: npm install
 
-      - name: Verify Contract on Polygonscan
+      # Step 5: Verify contract on Polygonscan
+      - name: Verify Contract
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
