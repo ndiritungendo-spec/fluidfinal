@@ -1,35 +1,55 @@
 const fs = require("fs");
 const hre = require("hardhat");
+require("dotenv").config();
 
 async function main() {
   console.log("🚀 Starting FluidToken deployment...");
 
   const [deployer] = await hre.ethers.getSigners();
-  console.log("👤 Deploying with account:", deployer.address);
-  console.log("💰 Balance:", (await hre.ethers.provider.getBalance(deployer.address)).toString());
+  console.log("👤 Deployer:", deployer.address);
 
-  const foundationWallet = "0x1111111111111111111111111111111111111111";
-  const relayerWallet = "0x2222222222222222222222222222222222222222";
-  const initialSigners = [
-    "0x3333333333333333333333333333333333333333",
-    "0x4444444444444444444444444444444444444444"
-  ];
-  const requiredApprovals = 2;
+  const foundationWallet = process.env.FOUNDATION_WALLET;
+  const relayerWallet = process.env.RELAYER_WALLET;
+  const signers = [process.env.SIGNER1, process.env.SIGNER2];
+  const requiredApprovals = Number(process.env.REQUIRED_APPROVALS) || 2;
+
+  console.log("📦 Constructor arguments:");
+  console.log({ foundationWallet, relayerWallet, signers, requiredApprovals });
 
   const FluidToken = await hre.ethers.getContractFactory("FluidToken");
-  const token = await FluidToken.deploy(foundationWallet, relayerWallet, initialSigners, requiredApprovals);
+  const token = await FluidToken.deploy(
+    foundationWallet,
+    relayerWallet,
+    signers,
+    requiredApprovals
+  );
   await token.waitForDeployment();
 
   const address = await token.getAddress();
   console.log(`✅ FluidToken deployed at: ${address}`);
 
   fs.writeFileSync("deploy.log", address, { encoding: "utf8" });
-  console.log("📝 Saved deployed address to deploy.log");
+
+  console.log("⏳ Waiting 5 blocks for Polygonscan...");
+  await token.deploymentTransaction().wait(5);
+
+  console.log("🔍 Verifying contract...");
+  try {
+    await hre.run("verify:verify", {
+      address,
+      constructorArguments: [foundationWallet, relayerWallet, signers, requiredApprovals],
+    });
+    console.log("✅ Verification successful!");
+  } catch (error) {
+    if (error.message.includes("Already Verified")) {
+      console.log("ℹ️ Contract already verified on Polygonscan.");
+    } else {
+      console.error("❌ Verification failed:", error.message);
+    }
+  }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("❌ Deployment failed:", error);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error("❌ Deployment failed:", err);
+  process.exit(1);
+});
