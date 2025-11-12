@@ -3,17 +3,16 @@
   "version": "1.0.0",
   "scripts": {
     "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run scripts/deploy.js --network polygon",
     "verify": "npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 'Fluid Token' 'FLUID'"
   },
   "devDependencies": {
+    "hardhat": "^3.5.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "@nomiclabs/hardhat-ethers": "^3.0.0",
-    "@nomicfoundation/hardhat-verify": "^3.0.0",
-    "ethers": "^6.0.0",
-    "hardhat": "^2.18.0"
+    "@nomicfoundation/hardhat-verify": "^3.0.6",
+    "ethers": "^6.8.0",
+    "dotenv": "^16.3.1"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.0"
+    "@openzeppelin/contracts": "^4.9.3"
   }
 }
