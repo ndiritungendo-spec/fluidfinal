@@ -8,38 +8,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      # Step 3: Clean any old node_modules / lock files
-      - name: Clean old dependencies
+      - name: Install All Dependencies
         run: |
           rm -rf node_modules package-lock.json
-
-      # Step 4: Install Hardhat 3.x and verify plugin explicitly
-      - name: Install Hardhat & Verify Plugin
-        run: |
           npm install --save-dev hardhat@^3.5.0 \
             @nomicfoundation/hardhat-toolbox@^3.0.0 \
             @nomicfoundation/hardhat-verify@^3.0.6 \
             ethers@^6.8.0 dotenv@^16.3.1
+          npm install @openzeppelin/contracts
 
-      # Step 5: Install remaining project dependencies (OpenZeppelin etc.)
-      - name: Install Project Dependencies
-        run: npm install
-
-      # Step 6: Verify the contract on Polygonscan
       - name: Verify Contract
         env:
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
-          npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 "Fluid Token" "FLD"
+          npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 "Fluid Token" "FLUID"
