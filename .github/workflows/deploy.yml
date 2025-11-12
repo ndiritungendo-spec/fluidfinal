@@ -1,60 +1,28 @@
-name: Deploy and Verify FluidToken
+name: Verify FluidToken Contract
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: ⚙️ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: 📦 Install dependencies (with fallback)
-        run: |
-          echo "Installing dependencies with npm ci..."
-          npm ci || (echo "npm ci failed, falling back to npm install" && npm install)
+      - name: Install Dependencies
+        run: npm install
 
-      - name: 🚀 Deploy FluidToken to Polygon
+      - name: Verify Contract on Polygonscan
         env:
-          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
-          RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
-          SIGNER1: ${{ secrets.SIGNER1 }}
-          SIGNER2: ${{ secrets.SIGNER2 }}
-          REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
-          echo "Starting deployment..."
-          npx hardhat run scripts/deploy.js --network polygon
-
-      - name: 🔍 Verify FluidToken on Polygonscan
-        if: success() && steps.deploy.outcome == 'success'
-        env:
-          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
-          FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
-          RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
-          SIGNER1: ${{ secrets.SIGNER1 }}
-          SIGNER2: ${{ secrets.SIGNER2 }}
-          REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
-        run: |
-          echo "Reading deployed address..."
-          CONTRACT_ADDRESS=$(cat deploy.log)
-          echo "Verifying contract at: $CONTRACT_ADDRESS"
-
-          npx hardhat verify --network polygon \
-            $CONTRACT_ADDRESS \
-            $FOUNDATION_WALLET \
-            $RELAYER_WALLET \
-            "[\"$SIGNER1\", \"$SIGNER2\"]" \
-            $REQUIRED_APPROVALS
+          npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 "Fluid Token" "FLUID"
