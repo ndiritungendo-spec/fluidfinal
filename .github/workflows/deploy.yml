@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -25,4 +25,4 @@ jobs:
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
-          npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 "Fluid Token" "FLUID"
+          npx hardhat verify --network polygon 0x482eE2E3F715e25d5231747de9e9A647Fc904512 "Fluid Token" "FLD"
