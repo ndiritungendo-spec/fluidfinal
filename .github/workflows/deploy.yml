@@ -3,29 +3,43 @@ name: Deploy FluidToken
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    env:
+      # Secure environment variables (from GitHub Secrets)
+      ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
+      RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
+      SIGNER1: ${{ secrets.SIGNER1 }}
+      SIGNER2: ${{ secrets.SIGNER2 }}
+      REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
+      POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
+      - name: ⚙️ Install dependencies
+        run: npm ci
 
-      - name: Deploy Contract
+      - name: 🧱 Compile contracts
+        run: npx hardhat compile
+
+      - name: 🚀 Deploy & Verify FluidToken
         run: npx hardhat run scripts/deploy.js --network polygon
-        env:
-          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          FOUNDATION_WALLET: ${{ secrets.FOUNDATION_WALLET }}
-          RELAYER_WALLET: ${{ secrets.RELAYER_WALLET }}
-          SIGNERS: ${{ secrets.SIGNERS }}
-          REQUIRED_APPROVALS: ${{ secrets.REQUIRED_APPROVALS }}
+
+      - name: 📤 Upload deployment log
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-log
+          path: deploy.log
